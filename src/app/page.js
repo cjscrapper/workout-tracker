@@ -27,6 +27,7 @@ export default function WorkoutTracker() {
   const [coachQuestion, setCoachQuestion] = useState('');
   const [coachResponse, setCoachResponse] = useState('');
   const [coachLoading, setCoachLoading] = useState(false);
+  const [cardio, setCardio] = useState({ treadmill: { mins: '', speed: '', incline: '' }, sauna: { mins: '' } });
 
   useEffect(() => {
     try {
@@ -44,13 +45,14 @@ export default function WorkoutTracker() {
   const initSession = () => {
     const initial = {};
     day.exercises.forEach((ex, ei) => {
-      initial[ei] = Array.from({ length: ex.sets }, () => ({
-        weight: ex.startWeight || '',
+      initial[ei] = Array.from({ length: ex.sets }, (_, si) => ({
+        weight: ex.startWeight > 0 ? ex.startWeight + si * 5 : '',
         reps: ex.targetReps,
         done: false,
       }));
     });
     setSessionData(initial);
+    setCardio({ treadmill: { mins: '', speed: '', incline: '' }, sauna: { mins: '' } });
     setView('log');
   };
 
@@ -61,6 +63,10 @@ export default function WorkoutTracker() {
       updated[ei][si] = { ...updated[ei][si], [field]: value };
       return updated;
     });
+  };
+
+  const updateCardio = (type, field, value) => {
+    setCardio(prev => ({ ...prev, [type]: { ...prev[type], [field]: value } }));
   };
 
   const saveSession = () => {
@@ -75,6 +81,7 @@ export default function WorkoutTracker() {
         date: sessionDate,
         data: sessionData,
         exercises: exerciseNames,
+        cardio: cardio,
       }
     }));
     setSavedFlash(true);
@@ -287,6 +294,51 @@ export default function WorkoutTracker() {
               </div>
             ))}
 
+
+            {/* CARDIO + SAUNA */}
+            <div style={{ marginTop: 12, background: T.surface, borderRadius: 10, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 9, color: T.textMuted, letterSpacing: 2 }}>CARDIO + RECOVERY</div>
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+
+                {/* Treadmill */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: T.text, marginBottom: 8 }}>Treadmill</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" value={cardio.treadmill.mins} onChange={e => updateCardio('treadmill', 'mins', e.target.value)} placeholder="0"
+                        style={{ width: '100%', background: T.surface2, border: `1px solid ${T.border}`, color: T.text, padding: '8px 10px', borderRadius: 6, fontSize: 14, fontFamily: "'DM Mono'", boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 8, color: T.textMuted }}>MIN</span>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" step="0.1" value={cardio.treadmill.speed} onChange={e => updateCardio('treadmill', 'speed', e.target.value)} placeholder="0.0"
+                        style={{ width: '100%', background: T.surface2, border: `1px solid ${T.border}`, color: T.text, padding: '8px 10px', borderRadius: 6, fontSize: 14, fontFamily: "'DM Mono'", boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 8, color: T.textMuted }}>MPH</span>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" step="0.5" value={cardio.treadmill.incline} onChange={e => updateCardio('treadmill', 'incline', e.target.value)} placeholder="0"
+                        style={{ width: '100%', background: T.surface2, border: `1px solid ${T.border}`, color: T.text, padding: '8px 10px', borderRadius: 6, fontSize: 14, fontFamily: "'DM Mono'", boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 8, color: T.textMuted }}>%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sauna */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: T.text, marginBottom: 8 }}>Sauna</div>
+                  <div style={{ width: '33%' }}>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" value={cardio.sauna.mins} onChange={e => updateCardio('sauna', 'mins', e.target.value)} placeholder="0"
+                        style={{ width: '100%', background: T.surface2, border: `1px solid ${T.border}`, color: T.text, padding: '8px 10px', borderRadius: 6, fontSize: 14, fontFamily: "'DM Mono'", boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 8, color: T.textMuted }}>MIN</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
             <div style={{ marginTop: 6, padding: '12px 16px', background: T.surface, borderRadius: 10, border: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 10, color: T.textMuted, letterSpacing: 1 }}>SESSION VOLUME</div>
               <div style={{ fontFamily: "'Bebas Neue'", fontSize: 24, color: day.color, letterSpacing: 2 }}>
@@ -396,6 +448,20 @@ export default function WorkoutTracker() {
                     <div style={{ fontSize: 8, color: T.textMuted, textAlign: 'right', letterSpacing: 1 }}>LBS VOLUME</div>
                   </div>
                 </div>
+                {entry.cardio && (entry.cardio.treadmill?.mins || entry.cardio.sauna?.mins) && (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                    {entry.cardio.treadmill?.mins && (
+                      <div style={{ fontSize: 9, padding: '3px 8px', borderRadius: 4, background: T.surface2, border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                        🚶 {entry.cardio.treadmill.mins}min {entry.cardio.treadmill.speed && `· ${entry.cardio.treadmill.speed}mph`} {entry.cardio.treadmill.incline && `· ${entry.cardio.treadmill.incline}%`}
+                      </div>
+                    )}
+                    {entry.cardio.sauna?.mins && (
+                      <div style={{ fontSize: 9, padding: '3px 8px', borderRadius: 4, background: T.surface2, border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                        🧖 {entry.cardio.sauna.mins}min sauna
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {Object.entries(entry.data).map(([ei, sets]) => {
                     const exName = entry.exercises?.[ei] || PLAN[entry.day]?.exercises[ei]?.name || `Ex ${parseInt(ei)+1}`;
